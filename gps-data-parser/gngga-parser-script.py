@@ -1,24 +1,43 @@
-import pynmea2
 import json
+import time
+import serial
+import pynmea2
+import paho.mqtt.client as mqtt
 
 msg_list = []
 lonlat = []
 f = open("../gps-data-dump.ubx", "rb")
 w = open("../data.txt", "w")
 
-for e in f:
-    try:
-        line = e.decode().strip()
+ser = serial.Serial('/dev/ttyUSB0')
+
+
+def my_func(client, userdata, flags, rc):
+    print("Sent data to Horia.")
+
+
+client = mqtt.Client()
+client.on_publish = my_func
+client.tls_set()
+client.username_pw_set(username='upbdrive', password='upbdriveilabs')
+client.connect("ihoria.tech", 8883)
+client.loop_start()
+
+while True:
+    f.seek(0)
+    for e in f:
+        try:
+            line = e.decode().strip()
+        except UnicodeError:
+            continue
+
         if line.startswith('$GNGGA'):
             star = line.index('*')
             line = line[:star]
             msg = pynmea2.parse(line)
-            lonlat.append([msg.longitude, msg.latitude])
-            msg_list.append(lonlat)
-    except:
-        continue
-
-w.write(json.dumps(lonlat, indent=4))
+            data = {'lat': msg.latitude, 'lon': msg.longitude}
+            client.publish("gps", json.dumps(data))
+            time.sleep(1)
 
 # print(f'Timestamp: {msg.timestamp}')
 # print(f'Latitude: {msg.latitude}')
