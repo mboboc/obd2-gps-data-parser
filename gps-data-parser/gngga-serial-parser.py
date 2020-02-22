@@ -9,7 +9,7 @@ msg_list=[]
 
 
 def my_func(client, userdata, flags, rc):
-    print("called my func")
+    print("Connection established!")
 
 client = mqtt.Client()
 client.on_connect = my_func
